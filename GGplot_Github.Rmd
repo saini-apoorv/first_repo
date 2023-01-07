@@ -3,12 +3,12 @@ title: "GGplot"
 author: "Apoorv Saini"
 date: "January 6, 2023"
 output: 
+  pdf_document:
+    toc: yes
   html_document:
     theme: cerulean
     toc: yes
     toc_float: yes
-  pdf_document:
-    toc: yes
 fontsize: 14pt
 ---
 
@@ -473,6 +473,391 @@ ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
 ```
 
 ## Settting the theme
+
+Themes control the general style of a ggplot (things like the background colour, size of
+text etc.) and comes with a whole bunch of predefined themes. Let’s play around with
+themes using some skills we’ve already learnt; assigning plots to an object and plotting
+multiple ggplots in a single figure using patchwork. We assign themes by creating a
+new layer with the general notation - theme_NameOfTheme(). For example, to use the
+theme_classic, theme_bw, theme_minimal and theme_light themes.
+
+
+### 1. Classic theme
+```{r}
+classic <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") + theme_classic()
+
+
+
+#To use a them write the name of the object (that has our ggplot) + theme name
+classic + theme_classic()
+```
+
+### 2. Black and white theme
+```{r}
+bw <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") + theme_bw()
+
+
+bw + theme_bw()
+```
+
+
+### 3. Minimal theme
+
+```{r}
+minimal <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") + theme_minimal()
+
+
+minimal + theme_minimal()
+```
+
+### 4. Light theme
+
+```{r}
+light <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  theme_light()
+
+
+
+light + theme_light()
+
+```
+
+
+### 5. Test theme
+```{r}
+test <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  theme_test()
+
+
+
+
+test + theme_test()
+```
+
+### 6. Line draw
+
+```{r}
+linedraw <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  theme_linedraw()
+
+
+
+
+linedraw + theme_linedraw()
+```
+
+
+## Making your own theme
+
+In terms of finding a theme that most closely matches our “final figure”, it’s probably
+going to be theme_classic(). There are additional themes available to you, and even
+more available online. ggthemes is a package which contains many more themes for you
+to use. The BBC even have their own ggplot2 theme called “BBplot” which they use
+when making their own figures (while good, we don’t like it too much for scientific
+figures). Indeed, you can even make your own theme which is what we’ll work on next.
+To begin with, we’ll have a look to see how theme_classic() was coded. We can do that
+easily enough by just writing the function name without the parentheses (see Chapter
+7 for a bit more on this).
+
+
+
+Let’s use this code as the basis for our own theme and modify it according to our needs.
+We’ll call the theme, theme_rbook. Not all of the options will immediately make sense,
+but don’t worry about this too much for now. Just know that the settings we’re putting
+in place are:
+• Font size for axis titles = 13
+• Font size for x axis text = 10
+• Font size for y axis text = 10
+• Font for caption = 10 and italics
+• Background colour = white
+• Background border = black
+• Axis lines = black
+• Strip colour (for facets) = light blue
+• Strip text colour (for facets) = black
+• Legend box colours = No colour
+This is by no means an exhaustive list of features you can specify in your own theme,
+but this will get you started. Of course, there’s no need to use a personalised theme as
+the pre-built options are perfectly suitable.
+  
+
+```{r}
+theme_rbook <- function(base_size = 13, base_family = "", base_line_size = base_size/22,
+                        base_rect_size = base_size/22) {
+  theme(
+    axis.title = element_text(size = 13),
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10),
+    plot.caption = element_text(size = 10, face = "italic"),
+    panel.background = element_rect(fill="white"),
+    axis.line = element_line(size = 1, colour = "black"),
+    strip.background =element_rect(fill = "#cddcdd"),
+    panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+    strip.text = element_text(colour = "black"),
+    legend.key=element_blank()
+  )
+} 
+
+```
+
+***`theme_rbook()` is now available for us to use just like any other theme.***
+
+**Let’s try remaking our figure using our new theme.**
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  # Updated theme to our theme_rbook
+  theme_rbook() # use our new theme
+```
+
+### Prettification
+
+We’ve pretty much replicated our “final figure”. We just have a few final adjustments
+to make, and we’ll do so in order of difficulty.
+Let’s remind ourselves of what that “final figure” looked like. Remember, since we’ve
+previously stored the figure as an object called final_figure we can just type that into
+the console and pull up the figure
+
+
+
+
+Let’s begin the final push by including that dashed horizontal line at the average shoot
+area, at about 80, on our y axis. This represents the overall mean area of a shoot,
+regardless of nitrogen concentration, treatment, or block. To draw a horizontal line we
+use a geom called geom_hline(), and the most important thing we need to specify is the
+y intercept value (in this case the mean area of a shoot). We can also change the type
+of line using the argument linetype = and also the colour (as we did before). Let’s see
+how it works.
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  # Added a horizontal line using geom_hline
+  geom_hline(aes(yintercept = mean(shootarea)), size = 0.5, colour = "black", linetype = 3) + 
+  theme_rbook()
+```
+
+***Notice how we included the function mean(shootarea) within the geom_hline() function?
+We could also do that externally to the ggplot2 code and get the same result.***
+
+```{r}
+mean(flowergg$shootarea)
+## [1] 79.78333
+```
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  # Manually entering mean value
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  theme_rbook()
+```
+
+
+Exactly the same figure but produced in a slightly different way (the point being that
+there are always multiple ways to get what you want).
+Now let’s tackle that “overall” nitrogen effect. This overall line is effectively the figure
+we produced much earlier when we learnt how to include a line of best fit from a
+linear model. However, we are already using `geom_smooth()`, surely we can’t use it again?
+
+This may shock and/or surprise you so please ensure you are seated. You can use
+`geom_smooth()`again. In fact you can use it as many times as you want. You can use any
+layer as many times as you want! Isn’t the world full of wonderful miracles? … Anyway,
+here’s the code…
+
+**Overall nitrogen effect**
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  # Adding a SECOND geom_smooth :O
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  theme_rbook()
+```
+
+that’s great! But you should be asking yourself why that worked. Why when we
+specified the first `geom_smooth()` did it draw 3 lines, whereas the second time we used
+`geom_smooth()` it just drew a single line? The secret lies in a “conflict” (it isn’t actually
+a conflict but that’s what we’ll call it) between the colour specified in the main call
+to `ggplot()` and the colour specified in the second `geom_smooth()`. Notice how in the
+second we’ve specifically told ggplot2 that the colour will be black, while prior to this
+it drew lines based on the number of groups (or colours) in nitrogen? In “overriding”
+the universal `ggplot()` with a geom specific argument we’re able to get ggplot2 to plot
+what we want.
+
+
+
+
+the only things left to do are to change the colour and the shape of the points to something of our choosing and include information on the “overall” trend line in the legend. we’ll begin with the former; changing colour and shape to something we specifically want. 
+
+When we first started using ggplot2 this was the thing which caused us the most
+difficulty. We think the reason is, that to manually change the colours actually requires
+an additional layer, where we assumed this would be done in either the main call to
+`ggplot()` or in a geom.
+
+
+Instead of doing this within the specific geom, we’ll use scale_colour_manual() as well as`scale_shape_manual()`. Doing it this way will allow us to do two things at once; change the shape and colour to our choosing, and assign labels to these (much like what we did with xlab() and ylab()). Doing so is not too complex but will require nesting a function (c()) within our scale_colour_manual and scale_shape_manual functions (see Chapter 2 for reminder on the concatenate function (c()) if you’ve forgotten).
+
+Choosing colours can be fiddly. We’ve found using a colour wheel helps with this step.
+you can always use Google to find an interactive colour wheel, or use Google’s Colour
+picker. Any decent website should give you a HEX code, something like: #5C1AAE
+which is a “code” representation of a colour. Alternatively, there are colour names
+which R and ggplot2 will also understand (e.g. “firebrick4”). Having chosen our colours
+using whichever means, let’s see how we can do it:
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  facet_grid(block ~ treat) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  # Setting colour and associated labels
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  # Setting shape and associated labels
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook()
+```
+
+To make sense of that code (or any code for that matter) try running it piece by piece.
+For instance in the above code, if we run c("#5C1AAE", "#AE5C1A", "#1AAE5C") we’ll get a
+list of those strings. That list is then passed on to scale_colour_manual() as the colours we wish to use. Since we only have three nitrogen concentrations, it will use these three colours. Try including an additional colour in the list and see what happens (if you place the new colour at the end of the list, nothing will happen since it will use the first three colours of the list - try adding it to the start of the list). The same is true for scale_shape_manual().
+
+But if you’re paying close attention you’ll notice that there’s a mistake with the figure
+now. What should be labelled “Low” is actually labelled “Medium” (the green points
+and line are our low nitrogen concentration, but ggplot2 is saying that it’s purple).
+ggplot2 hasn’t made a mistake here, we have. Remember that code is purely logical. It
+will do explicitly what it is told to do, and in this case we’ve told it to call the labels High, Medium and Low. We could have just as easily told ggplot2 to call them Pretoria, Tokyo, and Copenhagen. The lesson here is to always be critical of what your outputs are. Double check everything you do.
+
+So how do we fix this? We need to do a little data manipulation to rearrange our factors
+so that the order goes High, Medium, Low. Let’s do that:
+
+```{r}
+flowergg$nitrogen <- factor(flowergg$nitrogen, levels = c("high", "medium", "low"))
+```
+
+
+***With that done, we can re-run our above code to get a correct figure and assign it the
+name “rbook_figure”.***
+
+```{r}
+rbook_figure <- ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+    geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+    geom_smooth(method = "lm", se = FALSE) +
+    geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+    facet_grid(block ~ treat) +
+    xlab("Weight of flower (g)") +
+    ylab(bquote("Area of shoot"~(cm^2))) +
+    labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+         caption = "Regression assumptions are unvalidated") +
+    geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+    scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                        labels = c("High", "Medium", "Low")) +
+    scale_shape_manual(values = c(15,17,19),
+                       labels = c("High", "Medium", "Low")) +
+    theme_rbook()
+  rbook_figure
+```
+
+### Words of wisdom
+
+Here are two final parting words of
+wisdom!. 
+
+1. First, as we’ve said before, don’t fall into the trap of thinking your figures
+are superior to those who don’t use ggplot2. As we’ve mentioned previously, equivalent
+figures are possible in both base R and ggplot2. The only difference is how you get to
+those figures.
+
+2. Secondly, don’t overcomplicate your figures. With regards to the final figure we produced
+here, we’ve gone back and forth as to whether we are guilty of this. The figure
+does contain a lot of information, drawing on information from five different variables,
+with one of those being presented in three different ways. We would be reluctant, for
+example, to include this in a presentation as it would likely be too much for an audience
+to fully appreciate in the 30 seconds to 1 minute that they’ll see it. In the end
+we decided it was worth the risk as it served as a nice demonstration. Fortunately, or
+unfortunately depending on your view, there are no hard and fast rules when it comes
+to making figures. Much of it will be at your discretion, so please ensure you give it
+some thought.
+
+
+
+
 
 
 
