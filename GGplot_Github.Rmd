@@ -856,6 +856,801 @@ to making figures. Much of it will be at your discretion, so please ensure you g
 some thought.
 
 
+## Tips and tricks
+
+### 1. Statistics layer:
+
+The statistics layer is often ignored in favour of working solely with the geometry layer, as we’ve done above. The two are largely interchangeable, though the relative rareness of online help and discussions on the statistics layer seems to have relegated it to almost a state of anonymity. There is real value in at least understanding what the statistics layer is doing, even if you don’t ever need to make direct use of it. It is perhaps most clear what the statistical layer is doing in the early `geom_smooth()` figure we made.
+
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)  
+## `geom_smooth()` using formula 'y ~ x'
+```
+
+
+
+Nowhere in our dataset are there columns for either the y-intercept or the gradient
+needed to draw the straight line, yet we’ve managed to draw one. The statistics layer
+calculates these based on our data, without us necessarily knowing what we’ve done.
+It’s also the engine behind converting your data into counts for producing a bar chart,
+or densities for violin plots, or summary statistics for boxplots and so on.
+It’s entirely possible that you’ll be able to use ggplot2 for the vast majority of you
+plotting without ever consulting the statistics layer in any more detail than we have
+here (simply by “calling” - unknowingly - to it via the geometry layer), but be aware
+that it exists.
+
+If we wanted to recreate the above figure using the statistics layer we would do it like
+this:  
+
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point() +
+  # using stat_smooth instead of geom_smooth
+  stat_smooth(geom = "smooth", method = "lm", se = FALSE) 
+```
+
+
+While in this example it doesn’t make a difference which we use, in other cases we may
+want to use the calculated statistics in alternative ways. We won’t get into it, but see
+?after_stat if you are interested.
+
+### 2. Axis limits and zooms: `coord_cartesian()` better
+
+Fairly often, you may want to limit the range of your axes. Maybe you want to focus a
+particular part of the data to really tease apart any patterns occurring there. Whatever
+the reason, it’s a useful skill, and with most things code related, there’s a couple of ways to do this. We’ll show two here; `xlim()` and `ylim()`, and `coord_cartesian()`. Using both of these we’ll set the x axis to only show data between 10 and 15 g and the y axis to only show the area of the shoot between 50 and 150 mm2. We’ll start with limiting the axes.
+
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(aes(colour = nitrogen, shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(colour = "black", method = "lm", se = FALSE, linetype = 2, alpha = 0.6) +
+  geom_smooth(aes(colour = nitrogen), method = "lm", se = FALSE, size = 1.2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook() +
+  # New x and y limits
+  xlim(c(10, 15)) +
+  ylim(c(50, 150))
+```
+
+If you run this yourself you’ll see warning messages telling us that n rows contain either
+missing or non-finite values? That’s because we’ve essentially chopped out a huge part
+of our data using this method (everything outside of the ranges that we specified is
+“removed” from the data). As a result of doing this our lines have now completely
+changed direction. Notice that for low nitrogen concentration, the line is being drawn
+using only two points? This may, or may not be a problem depending on the aim we
+have, but we can use an alternative method; `coord_cartesian()`.
+
+
+Warning messages:
+1: Removed 68 rows containing non-finite values (`stat_smooth()`). 
+2: Removed 68 rows containing non-finite values (`stat_smooth()`). 
+3: Removed 68 rows containing missing values (`geom_point()`). 
+4: Removed 6 rows containing missing values (`geom_smooth()`).
+
+
+coord_cartesian() works in much the same way, but instead of chopping out data, it
+instead zooms in. Doing so means that the entire dataset is maintained (and any
+trends are maintained).
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(aes(colour = nitrogen, shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(colour = "black", method = "lm", se = FALSE, linetype = 2, alpha = 0.6) +
+  geom_smooth(aes(colour = nitrogen), method = "lm", se = FALSE, size = 1.2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook() +
+  # Zooming in rather than chopping out
+  coord_cartesian(xlim = c(10, 15), ylim = c(50, 150))
+```
+
+
+Notice now that the trends are maintained (as the lines are being informed by data
+which are off-screen). We would generally advise using `coord_cartesian()` as it protects
+you against possible misinterpretations.
+
+### 3. Layering layers
+
+***THE ORDER OF LAYERS MATTER. SELECT AND THEN PRESS AND HOLD ALT + UP OR DOWN ARROW***
+
+The layers are read and “painted” in order of their appearance in the code.
+If `geom_point()` comes before `geom_col()`, then your points may well end up being hidden.
+
+To fix this is easy, we simply need to move the layers up or down in the code. A useful
+tip for those using Rstudio, is that you can move lines of code especially easily. Simply
+click on a line of code, hold down Alt and then press either the up or down arrows, and
+the entire line will move up or down as well. For multiple lines of code, simply highlight all those lines you want to move and press Alt + Up/Down arrow.
+
+
+
+### 4. Continuous colours
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Instead of categorical colours, such as we’ve used for nitrogen concentration, what if
+instead we wanted a gradient? To illustrate this, we’ll remove the trend lines to highlight the changes we make. We’ll also be using the flowers variable (i.e. number of flowers) to specify the colour that points should be coloured.
+
+We have three options that we’ll use
+here; the default colour scheme, the `scale_colour_gradient()` scheme, and an alternative `schemescale_colour_gradient2()`. Remember that we’ll also need to change our label for the legend.
+
+We’ll start with the default option. Here we only need to change nitrogen (which is a
+factor) to flowers (which is continuous) in the colour = argument within `aes()`:
+ 
+ 
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  # Deleted geom_smooths for illustrative purposes only
+  # (and also removed alpha argument from geom_point)
+  geom_point(aes(colour = flowers, shape = nitrogen), size = 2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  # Changed colour argument label
+  labs(shape = "Nitrogen\nConcentration", colour = "Number of\nFlowers",
+       caption = "Regression assumptions are unvalidated") +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook()
+```
+ 
+ 
+It would help ourselves (and our audience), if we changed the colours to
+something more noticeably different, using `scale_colour_gradient()`. This works much as
+`scale_colour_manual()` except that this time we specify the low = and high = values using arguments. 
+ 
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(aes(colour = flowers, shape = nitrogen), size = 2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  # Updated legend name for colour
+  labs(shape = "Nitrogen\nConcentration", colour = "Number of\nFlowers",
+       caption = "Regression assumptions are unvalidated") +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  # Adding scale_colour_gradient
+  scale_colour_gradient(low = "#9F00FF", high = "#FF9F00") +
+  theme_rbook()
+```
+ 
+ 
+Although arguably better, we still struggle to spot the difference when there are between 5 and 12 flowers. Maybe having an additional colour would help those mid values stand out a bit more. The way we can do that here is to set a midpoint where the colours shift from green to blue to pink. Doing so might help us see the variation even more clearly.
+
+This is exactly what `scale_colour_gradient2()` allows. `scale_colour_gradient2()` works
+in much the same way as `scale_colour_gradient()` except that we have two additional
+arguments to worry about; midpoint = where we specify a value for the midpoint, and
+mid = where we state the colour the midpoint should take. We’ll set the midpoint using
+mean()`. 
+ 
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(aes(colour = flowers, shape = nitrogen), size = 2) +
+  xlab("Weight of flower (g)") + ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Number of\nFlowers",
+       caption = "Regression assumptions are unvalidated") +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  # Adding scale_colour_gradient2
+  scale_colour_gradient2(midpoint = mean(flowergg$flowers),
+                         low = "#9F00FF", mid = "#00FF9F", high = "#FF9F00") +
+  theme_rbook()
+```
+ 
+
+Definitely not our favourite figure. Perhaps if we add more colours, that will
+help things a bit (probably not but let’s do it anyway). We now move onto using
+scale_colour_gradientn(), which diverges slightly. Instead of specifying colours for low, mid, and/or high, here we’ll be specifying them using proportions within the values
+= argument. A common mistake with values =, within scale_colour_gradient(), is to
+assume (justifiably in our opinion) that we’d specify the actual numbers of flowers as
+our values. This is wrong. Try doing so and you’ll likely see a grey colour bar and
+grey points. Instead values = represent the proportional ranges where we want the
+colour to occupy. In the code below, we use 0, 0.25, 0.5, 0.75 and 1 as our proportions,
+corresponding to 4 colours (note that we have one fewer colour than proportions given
+as the colours occupy a range and not a value). 
+
+ 
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(aes(colour = flowers, shape = nitrogen), size = 2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Number of\nFlowers",
+       caption = "Regression assumptions are unvalidated") +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  # Adding scale_colour_gradientn
+  scale_colour_gradientn(colours = c("#1252ED", "#12ED3F", "#EDAD12", "#ED12C0"),
+                         values = c(0, 0.25, 0.5, 0.75, 1)) +
+  theme_rbook()
+```
+ 
+
+**Slightly nauseating but it’s doing what we wanted it to do, so we shouldn’t really
+complain.** 
+
+
+### 5. Size of points
+
+Previously, we altered to size of points to be a constant number (e.g. size = 2). What
+if instead we wanted size to change according to a variable in our dataset? We can do
+this very easily by including a continuous variable with the size = argument.
+
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  # Moving size into aes and changing to a continuous variable
+  geom_point(aes(colour = nitrogen, shape = nitrogen, size = height), alpha = 0.6) +
+  geom_smooth(colour = "black", method = "lm", se = FALSE, linetype = 2, alpha = 0.6) +
+  geom_smooth(aes(colour = nitrogen), method = "lm", se = FALSE, size = 1.2) +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  geom_hline(aes(yintercept = 79.7833), size = 0.5, colour = "black", linetype = 3) +
+  # Including size label
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated",
+       size = "Plant\nHeight (cm)") +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19,21),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook()
+```
+
+
+Now the sizes reflect the height of the plants, with bigger points representing taller
+plants and vice-versa.
+
+
+### 6. Moving the legend
+
+To move the position of the legend requires tweaking the theme, just as we did before
+with theme_rbook(). But for legends we might not want this to be set in stone whenever
+we use the theme (i.e. coding this into theme_rbook()). Instead we can change it on the
+fly depending on the individual figure. To do so, we can use a theme() layer and the
+argument legend.position =, followed swiftly by another layer specifying that we still
+want to use theme_rbook().
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  # Moving the legend
+  theme(legend.position = "bottom") +
+  theme_rbook()
+```
+
+
+### 7. Hiding the legend
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  # Hiding the legend
+  theme(legend.position = "none") +
+  theme_rbook()
+```
+
+
+
+### 8. Hiding part of the legend
+
+What if we really don’t want points included in the legend? Instead of stating this
+using theme(), we’ll include it within geom_point() using show.legend = FALSE.
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  # Including show.legend = FALSE to prevent inclusion in legend
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6, show.legend = FALSE) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook()
+
+```
+
+
+### 9. Writing on a figure
+
+What if we were so utterly proud of our figure that we wanted to sign it (just like
+a painter signs their works of art)? We can do this using geom_text(). If we want to
+change the font, we need to check which ones are available for us to use. We can check
+this by running windowsFonts(). We’ll use Times New Roman in this example, which is
+referred to as serif.
+Not happy with your font options? Check out the extrafont package which expands
+your ‘fontage’.
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  # Including layer to display text
+  geom_text(x = 22, y = 5, label = "A. Artist", colour = "grey", family = "serif") +
+  theme_rbook()
+```
+
+In reality there are more appropriate uses for geom_text() but whatever the reason, the
+mechanics remain the same. We specify what the x and y position are (on the scale of
+the axes), what we want written (using label =), the font (using family =). If you want
+to do more complex tasks with text and labels, check out ggrepel which extends the
+options available to you.
+
+Similarly, if we want to include a tag for the figure, for instance we may want to refer
+to this figure as A we can do this using an additional argument in labs(). Let’s see how that works
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  # Including tag argument
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated", tag = "A") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  theme_rbook()
+```
+
+
+
+
+Doing so we get an “A” at the top left of the figure. If we weren’t happy with the 
+position of the “A”, we can always use geom_text() instead and position it ourselves.
+
+
+### 10. Axes tick marks and tick labels
+
+What are we to do if we want more or fewer ticks on an axis? We can do this using the
+appropriate layers; scale_y_discrete() and scale_x_discrete() for discrete data (e.g. factors); and scale_y_continuous() and scale_x_continuous() for continuous data. Within
+these layers, the argument we want to use is called breaks =, though we need to use
+this in combination with seq() (see Chapter 2 for a reminder on how the seq() function
+works). We’ll alter the x axis ticks in this example, with a tick label every 2.5 units.
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  # Adjusting breaks on x axis
+  scale_x_continuous(breaks = seq(from = 5, to = 25, by = 2.5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 200, by = 20))+
+  theme_rbook()
+```
+
+
+### 11. Rotating axes labels (for long scientific names):
+
+
+Axis tick labels sometimes need to be rotated. If you’ve ever worked with data from
+multiple species (with those lovely long latin names) for example, you’ll know that it can be a nightmare making figures. The names can end up overlapping to such an extent that your axis tick labels merge into a giant black blob of unreadable abstractionism.
+In such cases it’s best to rotate the text to make it readable. Doing so isn’t too much
+of a pain and we’ll be using theme() again to set the text angle to 45 degrees in addition to a little vertical adjustment so that the text doesn’t get too close or run too far away from the axis.
+
+
+```{r}
+ggplot(aes(x = weight, y = shootarea, colour = nitrogen), data = flowergg) +
+  geom_point(aes(shape = nitrogen), size = 2, alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, linetype = 2, alpha = 0.6, colour = "black") +
+  xlab("Weight of flower (g)") +
+  ylab(bquote("Area of shoot"~(cm^2))) +
+  labs(shape = "Nitrogen\nConcentration", colour = "Nitrogen\nConcentration",
+       caption = "Regression assumptions are unvalidated") +
+  geom_hline(aes(yintercept = 79.8), size = 0.5, colour = "black", linetype = 3) +
+  scale_colour_manual(values = c("#5C1AAE", "#AE5C1A", "#1AAE5C"),
+                      labels = c("High", "Medium", "Low")) +
+  scale_shape_manual(values = c(15,17,19),
+                     labels = c("High", "Medium", "Low")) +
+  # Changing the angle of the axis text
+  theme(axis.text.x=element_text(angle = 45, vjust = 0.5)) +
+  theme_rbook()
+```
+
+
+### 12. Common types of plots (A ggplot bestiary)
+
+#### 1. Density plot
+
+Below is a density plot which is much like a histogram. The x axis shows observations
+of given numbers of flowers, while the y axis is the density of observations (roughly
+equivalent to number of rows with that many flowers, calculated in the background
+by the statistics layer). Each density is coloured according to nitrogen concentration,
+though note that we’re using fill = instead of colour =. Try using colour instead to see
+what happens.
+
+Notice that we haven’t used data = flower here and instead just used flower? When
+an object is not assigned with an argument, ggplot2 will assume that it is the dataset.
+We’re using that here, but we actually prefer to explicitly state the argument name in
+our own work.
+
+
+```{r}
+ggplot(flowergg) +
+  geom_density(aes(x = flowers, fill = nitrogen), alpha = 0.5) +
+  labs(y = "Density", x = "Number of Flowers", fill = "Nitrogen\nConcentration") +
+  scale_fill_manual(labels = c("High", "Medium", "Low"),
+                    values = c("#DB24BC", "#BCDB24", "#24BCDB")) +
+  theme_rbook()
+```
+
+
+#### 2. Histogram
+
+Next is a histogram (a much more traditional version of a density plot). There are a
+couple of things to take note of here. The first is that flower$block is numeric and not
+a factor. We can correct that here fairly easily using the factor() function to convert it from numeric to factor (though ideally we’d have done this before - see Chapter 3).
+
+ 
+The other thing to take note of is that we’ve specified bins = 20. The number of bins
+control how many times the y-axis is broken up to show the data. Try increasing and
+decreasing to see the effect. The last is using the position = argument and stating that
+we do not want the bars to be stacked (the default position), instead we want them
+side-by-side, a.k.a. dodged.
+
+```{r}
+ggplot(flowergg) +
+  geom_histogram(aes(x = flowers, fill = factor(block)), colour = "black", bins = 20,
+                 position = "dodge") +
+  labs(y = "Count", x = "Number of Flowers", fill = "Greenhouse\nBlock") +
+  scale_fill_manual(labels = c("1", "2"),
+                    values = c("#8CD926", "#7326D9")) +
+  theme_rbook()
+```
+
+
+#### 3. Frequency polygon
+
+A frequency polygon is yet another visualisation of the above two. The only difference
+here is that we are drawing a line to each value, instead of a density curve or bars.
+
+
+```{r}
+ggplot(flowergg) +
+  geom_freqpoly(aes(x = flowers, colour = factor(block)), size = 1, bins = 20) +
+  labs(y = "Count", x = "Number of Flowers", colour = "Greenhouse\nBlock") +
+  scale_colour_manual(labels = c("1", "2"),
+                      values = c("#8CD926", "#7326D9")) +
+  theme_rbook()
+```
+
+
+#### 4. Boxplot
+
+Boxplots are a classic way to show to spread of data, and they’re easy to make in
+ggplot2. The dark line in the middle of the box shows the median, the boxes show
+the 25th and 75th percentiles (which is different from the base R boxplot()), and the
+whiskers show 1.5 times the inter-quartile range (i.e. the distance between between the
+lower and upper quartiles).
+
+
+
+```{r}
+ggplot(flowergg) +
+  geom_boxplot(aes(y = flowers, x = nitrogen)) +
+  labs(y = "Number of Flowers", x = "Nitrogen Concentration") +
+  theme_rbook()
+```
+
+
+#### 5. Violin plots
+
+Violin plots are an increasingly popular alternative to boxplots. They display much of
+the same information, as well as showing a version of the density plot above (imagine
+each violin plot, cut in half vertically and place on it’s side, thus showing the overall
+distribution of the data). In the plot below the figure is slightly more complex than
+those above and so deserves some explanation.
+
+Within geom_violin() we’ve included draw_quantiles = where we’ve specified we want
+quantile lines drawn at the 25, 50 and 75 quantiles (using the c() function). In combination with geom_violin() we’ve also included geom_jitter(). geom_jitter() is similar
+to geom_point() but induces a slight random spread of the points, often helpful when
+those points would otherwise be clustered. Within geom_jitter() we’ve also set height
+= 0, and width = 0.1 which specifies how much to jitter the points in a given dimension
+(here essentially telling ggplot2 not to jitter by height, and only to jitter width by a
+small amount).
+
+Finally, we’re also using this plot to show scale_y_log10. Hopefully this is largely selfexplanatory
+(it converts the y-axis to the log_10_ scale). There are additional scaling
+options for axis (for instance scale_y_sqrt()). Please note that using a log scaled axis
+in this case is actually doing harm in terms of understanding the data, we’d actually
+be much better off not doing so in this particular case.
+
+```{r}
+ggplot(flowergg) +
+  geom_violin(aes(y = flowers, x = nitrogen, fill = nitrogen),
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  geom_jitter(aes(y = flowers, x = nitrogen), colour = "black", height = 0,
+              width = 0.1, alpha = 0.5) +
+  scale_fill_manual(labels = c("High", "Medium", "Low"),
+                    values = c("#5f7f5c", "#749770", "#9eb69b")) +
+  labs(y = "Number of Flowers", x = "Nitrogen Concentration") +
+  scale_y_log10() +
+  theme_rbook()
+```
+
+
+#### 6. Barchart
+
+Below is an example of barcharts. It is included here for completeness, but be aware
+that they are viewed with contention (with good reason). Briefly, barcharts can hide
+information, or imply there is data where there is none; ultimately misleading the
+reader. There are almost always better alternatives to use that better demonstrate the
+data.
+
+```{r}
+ggplot(flowergg) +
+  geom_bar(aes(x = factor(block), fill = nitrogen)) +
+  scale_fill_manual(labels = c("High", "Medium", "Low"),
+                    values = c("#2613EC", "#9313EC", "#EC13D9")) +
+  labs(y = "Count", x = "Block") +
+  theme_rbook()
+```
+
+
+The barchart shows the numbers of observations in each block, with each bar split
+according to the number of observations in each nitrogen concentration. In this case
+they are equal because the dataset (and experimental design) was balanced.
+
+
+#### 7. Quantile lines
+
+While we can draw a straight line, perhaps we would also like to include the descriptive
+nature of a boxplot, except using continuous data. We can use quantile lines in such
+cases. Note that for quantiles to be calculated ggplot2 requires the installation of the
+package quantreg.
+
+
+```{r}
+library(quantreg)
+ggplot(aes(x = weight, y = shootarea), data = flowergg) +
+  geom_point(size = 0.5, alpha = 0.6) +
+  geom_quantile(colour = "darkgrey", size = 1) +
+  labs(y = "Shoot Area", x = "Weight") +
+  theme_rbook()
+```
+
+
+#### 8. Heat map (BETTER FOR SPATIAL DISTRIBUTION)
+
+Heatmaps are a great tool to visualise spatial patterns. ggplot2 can easily handle such data using geom_bin2d() to allow us to see if our data is more (or less) clustered.
+
+
+```{r}
+ggplot(aes(x = leafarea, y = shootarea), data = flowergg) +
+  geom_bin2d() +
+  labs(y = "Shoot Area", x = "Leaf Area") +
+  coord_cartesian(xlim = c(5,25)) +
+  theme_rbook()
+```
+
+In this example, lighter blue squares show combinations of leaf area and shoot area
+where we have more data, and dark blue shows the converse.
+
+
+
+#### 9. Hexmap
+
+A similar version to geom_density2d() is geom_hex(). The only difference between the two
+is that the squares are replaced with hexagons. Note that geom_hex() requires you to
+first install an additional package called hexbin.
+
+
+
+```{r}
+library(hexbin)
+ggplot(aes(x = leafarea, y = shootarea), data = flowergg) +
+  geom_hex() +
+  labs(y = "Shoot Area", x = "Leaf Area") +
+  coord_cartesian(xlim = c(5,25)) +
+  theme_rbook()
+```
+
+
+#### 10. Contour map
+
+Similar to a heatmap we can make a contour map using geom_density_2d(). The way
+to read this figure is much the same way as you’d read a topographical map showing
+mountains or peaks. The central polygon represents the space (amongst shoot and leaf
+area) where there are most observations. As you “step” down this mountain to the next
+line, we step down in the number of counts. Think of this as showing where points are
+most clustered, as in geom_bin2d().
+
+
+```{r}
+ggplot(aes(x = leafarea, y = shootarea), data = flowergg) +
+  geom_density2d() +
+  labs(y = "Shoot Area", x = "Leaf Area") +
+  coord_cartesian(xlim = c(5,25)) +
+  theme_rbook()
+```
+
+
+We can then expand on this using the statistics layer, via stat_nameOfStatistic. For
+instance, we can use the calculated “level” (representing the height of contour) to fill
+in our figure. To do so, we’ll swap out geom_density_2d() for stat_density_2d() which will allow us to colour in the contour map.
+
+
+```{r}
+ggplot(aes(x = leafarea, y = shootarea), data = flowergg) +
+  stat_density_2d(aes(fill = after_stat(level)), geom = "polygon") +
+  labs(y = "Shoot Area", x = "Leaf Area") +
+  coord_cartesian(xlim = c(5,25)) +
+  theme_rbook()
+```
+
+
+#### 11. cleveland dotplot
+
+The cleveland dotplot is a figure well suited to detect unusual oberservations (outliers?) in our data. The y axis is simply the order in which the data appears in the dataset. The x axis is our variable of interest. Points far to the left or far to the right are indicative of outliers. ggplot2 does not have a geom specifically designed for a cleveland dotplot, though because of the grammar of graphics framework, we can build it ourselves. We do this by first using the function rownames(). 
+
+This function returns the row name of each row. In most data frames, the row names are simply numbers. Once we have this information, we can convert this to numbers using as.numeric(). After doing this we have a vector of numbers from 1 to 96. Keep in mind that such techniques can be used for any sort of figure we want to make. We’ll use the same technique to add horiztonal lines for each row of data to replicate the traditional look of a dotchart.
+
+
+```{r}
+ggplot(flowergg) +
+  geom_hline(aes(yintercept = as.numeric(rownames(flowergg))), linetype = 2,
+             colour = "lightgrey") +
+  geom_point(aes(x = leafarea, y = as.numeric(rownames(flowergg)))) +
+  labs(y = "Order in Dataset", x = bquote("Area of leaf"~(cm^2))) +
+  theme_rbook()
+```
+
+
+
+#### 12. Pairs plot
+
+For the final figure we will need an additional package, called GGally. Within GGally
+is a function called ggpairs() which is equivalent to pairs() (part of base R). Both
+functions produce a scatterplot matrix of all variables of interest. Running diagonally
+down from left to right are plots showing distributions; either as stacked barcharts or as density plots, in this case coloured according to nitrogen concentration. The bottom
+plots show the plotted relationships, with variables on the top as the x axis, and the
+variables on the right plotted as the y axis. For example, the very bottom left plots
+shows the relationship between number of flowers on the y axis and treatment on the
+x axis, coloured according to nitrogen concentration. Conversely, the upper plots show
+either the correlation between variables, when both variables are continuous and the
+correlation can be calculated, boxplots when the plot is of a factor variable and a
+continuous variable, or as a stacked barchart when both variables are factors.
+
+
+Such figures are a fantastic way to quickly show relationships in the dataset. They can
+of course be used to plot only part of the dataset, for instance using flowers[ ,1:5] to
+plot the first five columns of the dataset.
+
+
+We’ve included two additional arguments in the code below. cardinality_threshold =
+forces GGally to plot all of the variables in our dataset (where it normally wants fewer
+variables) as well as progress = to avoid a progress bar appearing when we run the code.
+
+
+```{r}
+library(GGally)
+flowergg$block <- factor(flowergg$block)
+ggpairs(flowergg, aes(colour = nitrogen), cardinality_threshold = NULL, progress = FALSE) +
+  theme_rbook()
+```
+
+
+```{r}
+sessionInfo()
+```
 
 
 
@@ -866,5 +1661,5 @@ some thought.
 
 
 
-
+ 
  
